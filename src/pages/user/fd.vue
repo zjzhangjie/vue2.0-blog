@@ -1,0 +1,68 @@
+<template>
+  <div>
+    <h3 class="title">朋友圈</h3>
+    <ul v-if="statuses.length" class="list-group overflower"   >
+      <li v-for="status in statuses" class="list-group-item">
+         <span class="badge" >时间： {{ status.createdAt }}</span>
+        <router-link :to="{name:'User',params: {id:status.get('source').id}} ">
+        用户：  {{ status.get('source').get('username')}}
+          </router-link> 
+        
+        <span v-if="status.get('type') == 'create_article' ">
+          创建了新的博文
+          <router-link :to="{ name: 'ArticleShow',params: {id:status.get('article').id}}">
+        《  {{ status.get('title')}}》
+          </router-link>
+          
+        </span>
+
+      </li>
+    </ul>
+ 
+  </div>
+</template>
+
+<script>
+import { mapState } from 'vuex';
+export default {
+
+  name: 'fd',
+
+  data () {
+    return {
+      statuses: {}
+    };
+  },
+computed: mapState(['user']),
+  created(){
+    this.getFriendMsg();
+  },
+  methods: {
+    getFriendMsg(){
+      const followeesQ = this.$store.state.user.followeeQuery();
+      followeesQ.find().then(followees => {
+          console.log(followees);
+          const query = new this.$api.SDK.Query('_Status');
+          query.include('source');
+          query.include('article');
+          query.equalTo('inboxType', 'friend');
+          query.containedIn('source', followees);
+          return query.find();
+      }).then((statuses) => {
+        //查询成功，返回状态列表，每个对象都是 AV.Status
+        this.statuses = statuses;
+        this.$Progress.finish();
+        console.dir(statuses);
+      }, (err) => {
+        //查询失败
+        console.dir(err);
+      });
+
+    }
+  }
+};
+</script>
+
+<style lang="css" scoped>
+@import '~assets/global.css';
+</style>
